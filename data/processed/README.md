@@ -1,21 +1,90 @@
-# Processed Data - Phishing Detection Dataset
+# Processed Dataset - Improved for Real-World Generalization
 
-## Overview
+## Dataset Overview
 
-This folder contains the preprocessed and cleaned dataset for the AI Phishing Email Detector project, optimized for DistilBERT training.
+| Metric | Value |
+|--------|-------|
+| **Total Samples** | 5,819 |
+| **Legitimate Emails** | 2,989 (51.4%) |
+| **Phishing Emails** | 2,830 (48.6%) |
+| **Number of Sources** | 7 |
+
+---
+
+## Data Sources
+
+### Legitimate Emails (2,989 samples)
+
+| Source | Count | Description |
+|--------|-------|-------------|
+| Enron | 1,499 | Real corporate emails (highly diverse) |
+| SpamAssasin | 500 | Real personal/business emails |
+| LLM-generated | 990 | AI-generated legitimate emails |
+
+### Phishing Emails (2,830 samples)
+
+| Source | Count | Description |
+|--------|-------|-------------|
+| LLM-generated | 1,000 | AI-generated phishing emails |
+| Nazario | 499 | Classic phishing corpus |
+| Nigerian_Fraud | 496 | 419 scam/advance-fee fraud |
+| phishing_email | 500 | Mixed phishing styles |
+| Human-generated | 335 | Original curated phishing |
+
+---
+
+## Train/Validation/Test Splits
+
+| Split | Samples | Percentage |
+|-------|---------|------------|
+| Training | 4,655 | 80% |
+| Validation | 582 | 10% |
+| Test | 582 | 10% |
+
+All splits are **stratified by label** to maintain class balance.
+
+---
+
+## Preprocessing Applied
+
+1. **Text Cleaning**
+   - HTML tag removal
+   - URL anonymization → `[URL]`
+   - Email anonymization → `[EMAIL]`
+   - Special character handling
+   - Whitespace normalization
+
+2. **Quality Filters**
+   - Minimum text length: 50 characters
+   - Duplicate removal (by text content)
+
+---
+
+## Key Improvement: Diversity
+
+**Previous Version (v1):**
+- 4,000 samples from 2 sources (human + LLM)
+- LLM emails were templated ("Dear X, I hope this finds you...")
+- Poor generalization to real-world emails
+
+**Current Version (v2):**
+- 5,819 samples from 7 diverse sources
+- Real corporate emails (Enron)
+- Real phishing patterns (Nazario, Nigerian Fraud)
+- Multiple email styles and formats
+- **Expected: Better real-world generalization**
 
 ---
 
 ## Files
 
-| File | Rows | Description |
-|------|------|-------------|
-| `master_dataset.csv` | ~3198 | Complete cleaned dataset |
-| `train.csv` | ~2558 (80%) | Training split |
-| `validation.csv` | ~320 (10%) | Validation split |
-| `test.csv` | ~320 (10%) | Test split |
-
----
+```
+data/processed/
+├── master_dataset.csv    # All 5,819 samples
+├── train.csv             # 4,655 samples (80%)
+├── validation.csv        # 582 samples (10%)
+└── test.csv              # 582 samples (10%)
+```
 
 ## Schema
 
@@ -23,80 +92,14 @@ This folder contains the preprocessed and cleaned dataset for the AI Phishing Em
 |--------|------|-------------|
 | `text` | string | Cleaned email content |
 | `label` | int | 0 = Legitimate, 1 = Phishing |
-| `source` | string | "human" or "llm" |
+| `source` | string | Dataset origin |
 | `email_type` | string | "legit" or "phishing" |
 
 ---
 
-## Data Sources
+## Next Steps
 
-### Human-Generated Emails
-- **Legitimate**: Real corporate emails (Enron, SpamAssassin)
-- **Phishing**: Real phishing samples (Nazario Corpus, Kaggle)
-
-### LLM-Generated Emails  
-- **Legitimate**: AI-generated normal emails
-- **Phishing**: AI-generated phishing emails (Novel contribution)
-
----
-
-## Preprocessing Philosophy for DistilBERT
-
-### Why Minimal Preprocessing?
-
-DistilBERT uses a **WordPiece tokenizer** that already handles punctuation, numbers, and special characters. Aggressive preprocessing removes valuable phishing signals.
-
-### What We KEEP ✅
-
-| Element | Reason |
-|---------|--------|
-| **Numbers** | Phone/account numbers are phishing signals |
-| **Brackets** | `[URGENT]`, `(Action Required)` are phishing patterns |
-| **Special chars** | `$`, `!`, `@` create urgency signals |
-| **Punctuation** | `!!!`, `???` indicate emotional manipulation |
-| **Case** | `URGENT`, `CLICK NOW` patterns matter |
-
-### What We REMOVE/TRANSFORM ❌
-
-| Element | Action | Reason |
-|---------|--------|--------|
-| HTML tags | Remove | Noise for text model |
-| Encoding artifacts | Remove | `Â`, `\xa0` are parsing errors |
-| URLs | Replace with `[URL]` | Preserves "link exists" signal without memorizing domains |
-| Email addresses | Replace with `[EMAIL]` | Anonymizes while keeping signal |
-| Extra whitespace | Normalize | Multiple spaces add noise |
-| Short texts | Remove | < 10 chars = no meaningful content |
-| Duplicates | Remove | Prevents data leakage |
-
----
-
-## Preprocessing Applied
-
-1. ✅ Combined subject + body for human emails
-2. ✅ Removed HTML tags
-3. ✅ **URL Anonymization** → Replaced with `[URL]`
-4. ✅ **Email Anonymization** → Replaced with `[EMAIL]`
-5. ✅ Cleaned encoding artifacts (Â, \xa0, etc.)
-6. ✅ Normalized whitespace
-7. ✅ Removed entries with < 10 characters
-8. ✅ Removed duplicate entries
-9. ✅ Shuffled and split 80/10/10
-
----
-
-## Usage
-
-```python
-import pandas as pd
-
-# Load training data
-train_df = pd.read_csv('data/processed/train.csv')
-
-# For model training
-X_train = train_df['text']
-y_train = train_df['label']
-```
-
----
-
-*Generated on: February 7, 2026*
+1. Upload `train.csv`, `validation.csv`, `test.csv` to Google Colab
+2. Retrain DistilBERT model with same hyperparameters
+3. Test with arbitrary real-world emails
+4. Verify improved generalization
