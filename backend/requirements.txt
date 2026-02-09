@@ -1,0 +1,25 @@
+# FastAPI Backend Dependencies
+
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+
+# ML/AI
+transformers==4.36.2
+torch>=2.0.0
+accelerate>=0.25.0
+
+# Data Processing
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Validation
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+
+# CORS
+starlette>=0.35.0
+
+# Environment
+python-dotenv==1.0.0
