@@ -25,5 +25,8 @@ starlette>=0.35.0
 python-whois==0.9.4
 requests>=2.31.0
 
+# Web Crawling
+playwright>=1.40.0
+
 # Environment
 python-dotenv==1.0.0

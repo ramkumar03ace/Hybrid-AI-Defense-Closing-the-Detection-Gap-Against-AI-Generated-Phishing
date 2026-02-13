@@ -10,6 +10,7 @@ import logging
 from config import settings
 from routers import email_router
 from routers import url_router
+from routers import deep_router
 from services.email_classifier import classifier
 
 # Set up logging
@@ -76,6 +77,7 @@ app.add_middleware(
 # Include routers
 app.include_router(email_router.router)
 app.include_router(url_router.router)
+app.include_router(deep_router.router)
 
 
 @app.get("/")

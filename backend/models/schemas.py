@@ -117,3 +117,70 @@ class FullAnalysisResponse(BaseModel):
     overall_verdict: str = Field(..., description="SAFE, SUSPICIOUS, or PHISHING")
     overall_risk_score: float = Field(..., description="Combined risk score (0-1)")
     risk_factors: List[str] = Field(default_factory=list, description="Key risk factors")
+
+
+# --- Deep Analysis Schemas (Web Crawler + Visual) ---
+
+class CrawlResultSchema(BaseModel):
+    """Crawl result for a single URL."""
+    url: str = Field(..., description="Original URL")
+    final_url: str = Field("", description="Final URL after redirects")
+    status_code: Optional[int] = Field(None, description="HTTP status code")
+    page_title: str = Field("", description="Page title")
+    was_redirected: bool = Field(False, description="Whether URL was redirected")
+    redirect_chain: List[str] = Field(default_factory=list, description="Redirect chain")
+    has_login_form: bool = Field(False, description="Whether page has login form")
+    has_password_field: bool = Field(False, description="Whether page has password field")
+    screenshot_path: Optional[str] = Field(None, description="Path to screenshot")
+    error: Optional[str] = Field(None, description="Error if crawl failed")
+
+
+class VisualAnalysisSchema(BaseModel):
+    """Visual analysis of a crawled page."""
+    is_fake_login: bool = Field(False, description="Whether page is a fake login")
+    risk_score: float = Field(0.0, description="Visual risk score (0-1)")
+    impersonated_brand: Optional[str] = Field(None, description="Brand being impersonated")
+    flags: List[str] = Field(default_factory=list, description="Suspicious indicators")
+
+
+class LinkCheckSchema(BaseModel):
+    """Result of link checking."""
+    total_links: int = Field(0, description="Total links found")
+    checked_links: int = Field(0, description="Links checked")
+    suspicious_links: int = Field(0, description="Suspicious links found")
+    risk_score: float = Field(0.0, description="Link risk score (0-1)")
+    flags: List[str] = Field(default_factory=list, description="Suspicious indicators")
+
+
+class DeepAnalysisRequest(BaseModel):
+    """Request for deep analysis (text + URL + crawl + visual)."""
+    text: str = Field(..., description="Email body text", min_length=1)
+    subject: Optional[str] = Field(None, description="Email subject line")
+    crawl_urls: bool = Field(True, description="Whether to crawl URLs with browser")
+    take_screenshots: bool = Field(True, description="Whether to capture screenshots")
+
+
+class DeepAnalysisResponse(BaseModel):
+    """Full deep analysis combining all detection layers."""
+    # Layer 1: Text classification
+    text_analysis: EmailResponse = Field(..., description="ML classification")
+    
+    # Layer 2: URL static analysis
+    urls_found: int = Field(0, description="URLs found in email")
+    url_analysis: Optional[URLAnalysisResponse] = Field(None, description="URL analysis")
+    
+    # Layer 3: Web crawling
+    crawl_results: List[CrawlResultSchema] = Field(default_factory=list, description="Crawl results")
+    
+    # Layer 4: Visual analysis
+    visual_analysis: List[VisualAnalysisSchema] = Field(default_factory=list, description="Visual analysis")
+    
+    # Layer 5: Link checking
+    link_analysis: Optional[LinkCheckSchema] = Field(None, description="Link checking")
+    
+    # Combined verdict
+    overall_verdict: str = Field(..., description="SAFE, SUSPICIOUS, or PHISHING")
+    overall_risk_score: float = Field(..., description="Combined risk score (0-1)")
+    risk_factors: List[str] = Field(default_factory=list, description="Key risk factors")
+    analysis_layers: List[str] = Field(default_factory=list, description="Layers that ran")
+

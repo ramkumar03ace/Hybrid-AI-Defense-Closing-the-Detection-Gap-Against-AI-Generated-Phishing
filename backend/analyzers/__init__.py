@@ -1,13 +1,9 @@
 """
-URL Analyzer - Analyzes URLs found in emails for phishing indicators.
-
-Components:
-- URL extraction from email text
-- WHOIS domain age lookup
-- SSL certificate verification
-- VirusTotal integration (optional)
-- Combined risk scoring
+Analyzers Module - URL analysis, web crawling, visual detection, link checking.
 """
 
-from .url_analyzer import URLAnalyzer
+from .url_analyzer import URLAnalyzer, url_analyzer
 from .email_parser import EmailParser
+from .web_crawler import WebCrawler, web_crawler
+from .visual_analyzer import VisualAnalyzer, visual_analyzer
+from .link_checker import LinkChecker, link_checker
