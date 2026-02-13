@@ -21,5 +21,9 @@ python-multipart==0.0.6
 # CORS
 starlette>=0.35.0
 
+# URL Analysis
+python-whois==0.9.4
+requests>=2.31.0
+
 # Environment
 python-dotenv==1.0.0

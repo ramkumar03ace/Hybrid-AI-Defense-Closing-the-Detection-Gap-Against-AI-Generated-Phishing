@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     HIGH_RISK_THRESHOLD: float = 0.85
     MEDIUM_RISK_THRESHOLD: float = 0.50
     
+    # URL Analysis
+    VIRUSTOTAL_API_KEY: str = ""  # Optional: set in .env for URL reputation checks
+    
     # CORS Settings
     CORS_ORIGINS: list = ["*"]
     CORS_ALLOW_CREDENTIALS: bool = True

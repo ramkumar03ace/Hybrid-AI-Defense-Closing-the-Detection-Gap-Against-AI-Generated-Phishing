@@ -9,6 +9,7 @@ import logging
 
 from config import settings
 from routers import email_router
+from routers import url_router
 from services.email_classifier import classifier
 
 # Set up logging
@@ -46,12 +47,13 @@ app = FastAPI(
     description="""
     ## Phishing Email Detection API
     
-    This API uses a fine-tuned DistilBERT model to detect phishing emails.
+    This API uses a fine-tuned DistilBERT model and URL analysis to detect phishing.
     
     ### Features
-    - **Single email analysis**: Analyze one email at a time
+    - **Email text analysis**: ML-based classification with DistilBERT
+    - **URL analysis**: WHOIS, SSL, VirusTotal, pattern detection
+    - **Full analysis**: Combined text + URL verdict
     - **Batch analysis**: Analyze multiple emails in one request
-    - **Confidence scores**: Get probability scores for predictions
     - **Risk levels**: Automatic risk classification (LOW, MEDIUM, HIGH)
     
     ### Model Information
@@ -73,6 +75,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(email_router.router)
+app.include_router(url_router.router)
 
 
 @app.get("/")
