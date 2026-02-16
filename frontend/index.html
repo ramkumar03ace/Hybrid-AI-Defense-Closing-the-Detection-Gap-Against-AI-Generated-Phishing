@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hybrid AI Defense — Phishing Detection Dashboard</title>
+    <meta name="description"
+        content="Multi-layer phishing detection system that combines NLP, URL intelligence, web crawling, and visual analysis to detect AI-generated phishing emails." />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>" />
+</head>
+
+<body>
+
+    <!-- Background effects -->
+    <div class="bg-grid"></div>
+    <div class="bg-glow"></div>
+
+    <div class="app-wrapper">
+
+        <!-- ===== HEADER ===== -->
+        <header class="header">
+            <div class="header__badge">
+                <span class="dot"></span>
+                Multi-Layer AI Defense
+            </div>
+            <h1 class="header__title">
+                Hybrid <span class="accent">AI Defense</span>
+            </h1>
+            <p class="header__sub">
+                Paste an email below to run a 5-layer deep analysis — NLP, URL intelligence, web crawling, visual
+                detection, and link checking.
+            </p>
+            <div id="statusChip" class="status-chip status-chip--loading">
+                Checking API…
+            </div>
+        </header>
+
+        <!-- ===== INPUT SECTION ===== -->
+        <section class="input-section card" id="inputSection">
+            <div class="card__title"><span class="icon">📧</span> Email Analysis</div>
+
+            <div class="input-group">
+                <label for="subjectInput">Subject (optional)</label>
+                <input type="text" id="subjectInput" placeholder="e.g. Urgent: Verify your account now" />
+            </div>
+
+            <div class="input-group">
+                <label for="emailInput">Email Body</label>
+                <textarea id="emailInput" placeholder="Paste the full email text here…"></textarea>
+            </div>
+
+            <div class="options-row">
+                <label class="toggle-group">
+                    <input type="checkbox" id="crawlToggle" checked />
+                    Web Crawling
+                </label>
+                <label class="toggle-group">
+                    <input type="checkbox" id="screenshotToggle" checked />
+                    Screenshots
+                </label>
+            </div>
+
+            <button class="btn-analyze" id="analyzeBtn">
+                <span class="btn-text">🔍 Deep Analyze</span>
+                <span class="spinner"></span>
+            </button>
+        </section>
+
+        <!-- ===== RESULTS SECTION ===== -->
+        <section class="results-section" id="resultsSection">
+
+            <!-- Verdict Banner -->
+            <div class="verdict-banner" id="verdictBanner">
+                <div class="gauge-container" id="gaugeContainer">
+                    <svg viewBox="0 0 100 100">
+                        <circle class="gauge-bg" cx="50" cy="50" r="40" />
+                        <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="40" stroke-dasharray="251.33"
+                            stroke-dashoffset="251.33" />
+                    </svg>
+                    <div class="gauge-label">
+                        <span class="gauge-label__score" id="gaugeScore">0</span>
+                        <span class="gauge-label__tag">Risk</span>
+                    </div>
+                </div>
+
+                <div class="verdict-info">
+                    <div class="verdict-info__label">Overall Verdict</div>
+                    <div class="verdict-info__verdict" id="verdictText">—</div>
+                    <div class="verdict-info__layers" id="layersBadges"></div>
+                </div>
+            </div>
+
+            <!-- Layer Grid -->
+            <div class="layer-grid" id="layerGrid">
+                <!-- Layer 1: Text Classification -->
+                <div class="card layer-card" id="layerText">
+                    <div class="layer-card__header">
+                        <span class="layer-card__name"><span class="layer-icon">🧠</span> Text (NLP)</span>
+                        <span class="layer-card__score" id="textScore">—</span>
+                    </div>
+                    <div class="layer-card__bar">
+                        <div class="layer-card__bar-fill" id="textBar"></div>
+                    </div>
+                    <ul class="layer-card__flags" id="textFlags"></ul>
+                </div>
+
+                <!-- Layer 2: URL Analysis -->
+                <div class="card layer-card" id="layerURL">
+                    <div class="layer-card__header">
+                        <span class="layer-card__name"><span class="layer-icon">🔗</span> URL Intel</span>
+                        <span class="layer-card__score" id="urlScore">—</span>
+                    </div>
+                    <div class="layer-card__bar">
+                        <div class="layer-card__bar-fill" id="urlBar"></div>
+                    </div>
+                    <ul class="layer-card__flags" id="urlFlags"></ul>
+                </div>
+
+                <!-- Layer 3: Web Crawling -->
+                <div class="card layer-card" id="layerCrawl">
+                    <div class="layer-card__header">
+                        <span class="layer-card__name"><span class="layer-icon">🕷️</span> Web Crawl</span>
+                        <span class="layer-card__score" id="crawlScore">—</span>
+                    </div>
+                    <div class="layer-card__bar">
+                        <div class="layer-card__bar-fill" id="crawlBar"></div>
+                    </div>
+                    <ul class="layer-card__flags" id="crawlFlags"></ul>
+                </div>
+
+                <!-- Layer 4: Visual Analysis -->
+                <div class="card layer-card" id="layerVisual">
+                    <div class="layer-card__header">
+                        <span class="layer-card__name"><span class="layer-icon">👁️</span> Visual</span>
+                        <span class="layer-card__score" id="visualScore">—</span>
+                    </div>
+                    <div class="layer-card__bar">
+                        <div class="layer-card__bar-fill" id="visualBar"></div>
+                    </div>
+                    <ul class="layer-card__flags" id="visualFlags"></ul>
+                </div>
+
+                <!-- Layer 5: Link Checker -->
+                <div class="card layer-card" id="layerLinks">
+                    <div class="layer-card__header">
+                        <span class="layer-card__name"><span class="layer-icon">🔀</span> Link Check</span>
+                        <span class="layer-card__score" id="linkScore">—</span>
+                    </div>
+                    <div class="layer-card__bar">
+                        <div class="layer-card__bar-fill" id="linkBar"></div>
+                    </div>
+                    <ul class="layer-card__flags" id="linkFlags"></ul>
+                </div>
+            </div>
+
+            <!-- Risk Factors -->
+            <div class="risk-factors card" id="riskFactorsCard" style="display:none;">
+                <div class="card__title"><span class="icon">⚠️</span> Risk Factors</div>
+                <ul class="risk-factors__list" id="riskFactorsList"></ul>
+            </div>
+        </section>
+
+        <!-- ===== ARCHITECTURE SECTION ===== -->
+        <section class="architecture-section">
+            <div class="card">
+                <div class="arch-title">🏗️ Detection Pipeline Architecture</div>
+                <div class="arch-pipeline">
+                    <div class="arch-step">
+                        <div class="arch-step__num">1</div>
+                        <div class="arch-step__info">
+                            <div class="arch-step__name">Text Classification</div>
+                            <div class="arch-step__desc">DistilBERT NLP model — 99.17% accuracy, detects urgency,
+                                threats, AI-generated patterns</div>
+                        </div>
+                        <div class="arch-step__weight">15%</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="arch-step__num">2</div>
+                        <div class="arch-step__info">
+                            <div class="arch-step__name">URL Intelligence</div>
+                            <div class="arch-step__desc">WHOIS domain age, SSL certificate, VirusTotal (70+ AVs),
+                                pattern matching</div>
+                        </div>
+                        <div class="arch-step__weight">30%</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="arch-step__num">3</div>
+                        <div class="arch-step__info">
+                            <div class="arch-step__name">Web Crawling</div>
+                            <div class="arch-step__desc">Headless Chromium via Playwright — visits URLs, captures
+                                screenshots, detects forms</div>
+                        </div>
+                        <div class="arch-step__weight">—</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="arch-step__num">4</div>
+                        <div class="arch-step__info">
+                            <div class="arch-step__name">Visual Analysis</div>
+                            <div class="arch-step__desc">Fake login page detection, brand impersonation (12+ brands),
+                                credential harvesting</div>
+                        </div>
+                        <div class="arch-step__weight">25%</div>
+                    </div>
+                    <div class="arch-step">
+                        <div class="arch-step__num">5</div>
+                        <div class="arch-step__info">
+                            <div class="arch-step__name">Link Checker</div>
+                            <div class="arch-step__desc">Follow redirect chains, detect domain changes, URL shortener
+                                expansion</div>
+                        </div>
+                        <div class="arch-step__weight">20%</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="footer">
+            <p class="footer__text">
+                🛡️ Hybrid AI Defense &mdash; Ramkumar &bull; VIT Vellore &bull;
+                <a href="http://localhost:8001/docs" target="_blank" rel="noopener">API Docs</a>
+            </p>
+        </footer>
+    </div>
+
+    <!-- Error Toast -->
+    <div class="error-toast" id="errorToast"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

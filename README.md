@@ -84,9 +84,9 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
           ▼                ▼                ▼
    ┌───────────────────────────────────────────────┐
    │          WEIGHTED RISK AGGREGATOR             │
-   │  Score = Text×0.35 + URL×0.20 + Visual×0.25  │
-   │          + Links×0.10 + bonus                 │
-   │  3+ layers flagged → +0.15 boost              │
+   │  Score = Text×0.15 + URL×0.30 + Visual×0.25  │
+   │          + Links×0.20 + bonus                 │
+   │  2+ layers flagged → +0.15 boost              │
    └───────────────────────┬───────────────────────┘
                            │
                            ▼
@@ -101,14 +101,14 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 
 ## 🔍 Component Details
 
-| Layer | Component | What it checks | Technology |
-|-------|-----------|----------------|------------|
-| 1 | `email_classifier.py` | Email text — urgency, threats, AI-generated patterns | DistilBERT (fine-tuned, 99.17%) |
-| 2 | `url_analyzer.py` | Domain age, SSL, VirusTotal reputation, suspicious patterns | python-whois + ssl + VirusTotal API |
-| 3 | `web_crawler.py` | Actually visits URLs in sandboxed browser, takes screenshots | Playwright Chromium (multiprocessing) |
-| 4 | `visual_analyzer.py` | Detects fake login pages, brand impersonation (12+ brands) | Heuristic rules (CNN planned) |
-| 5 | `link_checker.py` | Follows redirects, detects domain changes, URL shorteners | requests + redirect chain analysis |
-| — | `deep_router.py` | Combines all 5 layers into weighted risk score | Weighted aggregation + boost logic |
+| Layer | Component | Weight | What it checks | Technology |
+|-------|-----------|--------|----------------|------------|
+| 1 | `email_classifier.py` | 15% | Email text — urgency, threats, AI-generated patterns | DistilBERT (fine-tuned, 99.17%) |
+| 2 | `url_analyzer.py` | 30% | Domain age, SSL, VirusTotal reputation, suspicious patterns | python-whois + ssl + VirusTotal API |
+| 3 | `web_crawler.py` | — | Actually visits URLs in sandboxed browser, takes screenshots | Playwright Chromium (multiprocessing) |
+| 4 | `visual_analyzer.py` | 25% | Detects fake login pages, brand impersonation (12+ brands) | Heuristic rules (CNN planned) |
+| 5 | `link_checker.py` | 20% | Follows redirects, detects domain changes, URL shorteners | requests + redirect chain analysis |
+| — | `deep_router.py` | — | Combines all 5 layers into weighted risk score | Weighted aggregation + boost logic |
 
 ---
 
@@ -167,7 +167,7 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 | Web Crawling | Playwright Chromium (headless) | ✅ |
 | Visual Detection | Heuristic rules (12+ brands) | ✅ |
 | Link Analysis | requests + redirect chain tracking | ✅ |
-| Frontend | HTML + CSS + JS | ⬜ Planned |
+| Frontend | HTML + CSS + JS (dark mode) | ✅ |
 | Chrome Extension | Manifest V3 | ⬜ Planned |
 | CNN Visual Model | ResNet/EfficientNet on screenshots | ⬜ Planned |
 
@@ -198,12 +198,12 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 - [x] Implement recursive link checker (redirects, URL shorteners)
 - [x] Integrate all into `/deep-analyze` endpoint (5-layer pipeline)
 
-### Week 4: Frontend & Polish ⬜ ← YOU ARE HERE
-- [ ] Build web app UI (dashboard to paste & analyze emails)
+### Week 4: Frontend & Polish 🔄 ← YOU ARE HERE
+- [x] Build web app UI (dashboard to paste & analyze emails)
 - [ ] Create Chrome extension (Gmail integration)
-- [ ] Connect everything to backend
-- [ ] Testing and bug fixes
-- [ ] Documentation & presentation prep
+- [x] Connect everything to backend
+- [x] Rebalance scoring weights (Text 35%→15%, URL 20%→30%, Links 10%→20%)
+- [x] Testing and bug fixes
 
 ### Week 5: CNN Visual Model & Final Integration ⬜
 - [ ] Collect screenshot dataset (phishing vs real login pages)
@@ -212,6 +212,7 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 - [ ] Integrate CNN predictions into `/deep-analyze` risk scoring
 - [ ] Final testing, documentation, and paper prep
 
+- [ ] Documentation & presentation prep
 ---
 
 ## 📂 Project Structure
@@ -267,7 +268,7 @@ Hybrid-AI-Defense/
 
 1. **ML Model** — Fine-tuned DistilBERT for phishing detection ✅
 2. **Backend API** — FastAPI service with all analyzers ✅
-3. **Web Application** — UI to paste and analyze emails ⬜
+3. **Web Application** — Dark mode dashboard with 5-layer results ✅
 4. **Chrome Extension** — Gmail integration for real-time scanning ⬜
 5. **CNN Visual Model** — Screenshot-based fake login detection ⬜
 6. **Documentation** — Full project documentation ⬜
@@ -325,4 +326,4 @@ uvicorn main:app --reload --port 8001
 
 ---
 
-*Last Updated: February 16, 2026*
+*Last Updated: February 16, 2026 — Scoring weights rebalanced, frontend dashboard completed*

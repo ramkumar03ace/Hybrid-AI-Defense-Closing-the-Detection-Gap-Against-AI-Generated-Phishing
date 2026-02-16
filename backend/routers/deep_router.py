@@ -204,28 +204,28 @@ async def deep_analysis(request: DeepAnalysisRequest):
         # COMBINED SCORING
         # ==========================================
         # Weighted combination of all layers:
-        #   Text:   35%
-        #   URL:    20%
+        #   Text:   15%  (reduced — V2 model needs improvement)
+        #   URL:    30%
         #   Visual: 25%
-        #   Links:  10%
+        #   Links:  20%
         #   Other:  10% (reserved)
         text_risk = confidence if is_phishing else (1 - confidence)
         
         combined_risk = (
-            text_risk * 0.35 +
-            max_url_risk * 0.20 +
+            text_risk * 0.15 +
+            max_url_risk * 0.30 +
             max_visual_risk * 0.25 +
-            link_risk * 0.10
+            link_risk * 0.20
         )
         
-        # Boost if multiple layers flag it
+        # Boost if multiple layers flag it (2+ layers = +0.15)
         flagging_layers = sum([
             is_phishing,
             max_url_risk >= 0.30,
             max_visual_risk >= 0.40,
             link_risk >= 0.30,
         ])
-        if flagging_layers >= 3:
+        if flagging_layers >= 2:
             combined_risk = min(1.0, combined_risk + 0.15)
         
         # Determine verdict
