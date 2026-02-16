@@ -1,10 +1,10 @@
-# 🛡️ AI Phishing Email Detector
+# 🛡️ Hybrid AI Defense — Closing the Detection Gap Against AI-Generated Phishing
 
-> Multi-layer phishing detection system with focus on AI-generated phishing emails
+> Multi-layer phishing detection system that combines NLP, URL intelligence, web crawling, and visual analysis
 
 **Author:** Ramkumar  
 **University:** VIT Vellore (B.Tech CSE)  
-**Timeline:** 1 Month  
+**Timeline:** 5 Weeks  
 **Credits:** 5
 
 ---
@@ -28,77 +28,87 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    INCOMING EMAIL                        │
-└────────────────────────┬────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                     INCOMING EMAIL TEXT                       │
+│         POST /api/v1/deep-analyze                            │
+└────────────────────────┬─────────────────────────────────────┘
                          │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-   ┌──────────┐   ┌────────────┐   ┌──────────┐
-   │  TEXT    │   │    URL     │   │ HEADER   │
-   │ ANALYZER │   │  EXTRACTOR │   │ ANALYZER │
-   │ (BERT)   │   │            │   │(metadata)│
-   └────┬─────┘   └─────┬──────┘   └────┬─────┘
-        │               │               │
-        │               ▼               │
-        │    ┌─────────────────────┐    │
-        │    │   URL ANALYZER      │    │
-        │    │ • Domain age        │    │
-        │    │ • SSL certificate   │    │
-        │    │ • Reputation check  │    │
-        │    │ • Pattern matching  │    │
-        │    └──────────┬──────────┘    │
-        │               │               │
-        │               ▼               │
-        │    ┌─────────────────────┐    │
-        │    │   WEB CRAWLER       │    │
-        │    │ (Sandboxed browser) │    │
-        │    │ • Visit actual site │    │
-        │    │ • Screenshot it     │    │
-        │    │ • Extract all links │    │
-        │    └──────────┬──────────┘    │
-        │               │               │
-        │               ▼               │
-        │    ┌─────────────────────┐    │
-        │    │  VISUAL ANALYZER    │    │
-        │    │ • Fake login page?  │    │
-        │    │ • Brand spoofing?   │    │
-        │    │ • Suspicious forms? │    │
-        │    └──────────┬──────────┘    │
-        │               │               │
-        │               ▼               │
-        │    ┌─────────────────────┐    │
-        │    │  RECURSIVE LINK     │    │
-        │    │     CHECKER         │    │
-        │    │ (depth limit: 2-3)  │    │
-        │    └──────────┬──────────┘    │
-        │               │               │
-        ▼               ▼               ▼
-   ┌──────────────────────────────────────────┐
-   │         FINAL RISK AGGREGATOR            │
-   │   Combines all signals → Risk Score      │
-   └──────────────────────────────────────────┘
-                         │
-                         ▼
-              ⚠️ PHISHING: 87% confidence
-              • Email text: suspicious urgency
-              • URL: domain registered 2 days ago
-              • Website: fake Google login page
-              • Hidden redirect to: malware.ru
+          ┌──────────────┼──────────────────┐
+          ▼              ▼                  │
+   ┌─────────────┐  ┌──────────────┐        │
+   │ LAYER 1     │  │ EMAIL PARSER │        │
+   │ DistilBERT  │  │ extract URLs │        │
+   │ Text (35%)  │  │ extract meta │        │
+   └──────┬──────┘  └──────┬───────┘        │
+          │                │                │
+          │                ▼                │
+          │   ┌────────────────────────┐    │
+          │   │ LAYER 2: URL ANALYZER  │    │
+          │   │ (20% weight)           │    │
+          │   │ • WHOIS domain age     │    │
+          │   │ • SSL certificate      │    │
+          │   │ • VirusTotal (70+ AVs) │    │
+          │   │ • Pattern matching     │    │
+          │   │ • Brand impersonation  │    │
+          │   └────────────┬───────────┘    │
+          │                │                │
+          │                ▼                │
+          │   ┌────────────────────────┐    │
+          │   │ LAYER 3: WEB CRAWLER   │    │
+          │   │ (Playwright + Process) │    │
+          │   │ • Headless Chromium    │    │
+          │   │ • Screenshot capture   │    │
+          │   │ • Form/login detection │    │
+          │   │ • Redirect tracking    │    │
+          │   └────────────┬───────────┘    │
+          │                │                │
+          │                ▼                │
+          │   ┌────────────────────────┐    │
+          │   │ LAYER 4: VISUAL        │    │
+          │   │ ANALYZER (25% weight)  │    │
+          │   │ • Fake login detection │    │
+          │   │ • Brand impersonation  │    │
+          │   │   (12+ brands)         │    │
+          │   │ • Credential harvesting│    │
+          │   └────────────┬───────────┘    │
+          │                │                │
+          │                ▼                │
+          │   ┌────────────────────────┐    │
+          │   │ LAYER 5: LINK CHECKER  │    │
+          │   │ (10% weight)           │    │
+          │   │ • Follow redirects     │    │
+          │   │ • Domain change detect │    │
+          │   │ • URL shortener detect │    │
+          │   └────────────┬───────────┘    │
+          │                │                │
+          ▼                ▼                ▼
+   ┌───────────────────────────────────────────────┐
+   │          WEIGHTED RISK AGGREGATOR             │
+   │  Score = Text×0.35 + URL×0.20 + Visual×0.25  │
+   │          + Links×0.10 + bonus                 │
+   │  3+ layers flagged → +0.15 boost              │
+   └───────────────────────┬───────────────────────┘
+                           │
+                           ▼
+                ┌─────────────────────┐
+                │  ≥0.65 → 🔴 PHISHING │
+                │  ≥0.30 → 🟡 SUSPICIOUS│
+                │  <0.30 → 🟢 SAFE     │
+                └─────────────────────┘
 ```
 
 ---
 
 ## 🔍 Component Details
 
-| Layer | What it checks | Technology |
-|-------|----------------|------------|
-| Text Analyzer | Email body — urgency, threats, grammar, AI-generated patterns | DistilBERT (fine-tuned) |
-| URL Analyzer | Domain reputation, age, SSL, typosquatting | VirusTotal API + WHOIS + Rules |
-| Web Crawler | Actually visits site safely in sandbox | Playwright (headless browser) |
-| Visual Analyzer | Screenshots → detects fake login pages | CNN or template matching |
-| Link Crawler | Follows links on page, detects redirects | Recursive crawler with depth limit |
-| Aggregator | Weights all signals → final verdict | Ensemble model / weighted rules |
+| Layer | Component | What it checks | Technology |
+|-------|-----------|----------------|------------|
+| 1 | `email_classifier.py` | Email text — urgency, threats, AI-generated patterns | DistilBERT (fine-tuned, 99.17%) |
+| 2 | `url_analyzer.py` | Domain age, SSL, VirusTotal reputation, suspicious patterns | python-whois + ssl + VirusTotal API |
+| 3 | `web_crawler.py` | Actually visits URLs in sandboxed browser, takes screenshots | Playwright Chromium (multiprocessing) |
+| 4 | `visual_analyzer.py` | Detects fake login pages, brand impersonation (12+ brands) | Heuristic rules (CNN planned) |
+| 5 | `link_checker.py` | Follows redirects, detects domain changes, URL shorteners | requests + redirect chain analysis |
+| — | `deep_router.py` | Combines all 5 layers into weighted risk score | Weighted aggregation + boost logic |
 
 ---
 
@@ -106,8 +116,15 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 
 ### Architecture
 - **Base Model:** DistilBERT (66M parameters, 6 transformer layers)
-- **Type:** Fine-tuned text classification
-- **Output:** Binary classification (Phishing vs Legitimate) with confidence score
+- **Type:** Fine-tuned binary text classification
+- **Output:** Phishing vs Legitimate with confidence score (0–1)
+- **Thresholds:** ≥0.85 = HIGH risk, ≥0.50 = MEDIUM risk
+
+### Model Versions
+| Version | Accuracy | Dataset | Notes |
+|---------|----------|---------|-------|
+| V1 | 98.63% | Human-generated only | Baseline |
+| V2 | **99.17%** | Human + LLM generated | Current production model |
 
 ### Why DistilBERT?
 - 40% smaller than BERT, 60% faster
@@ -115,146 +132,146 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 - Perfect for deployment (extension + web app)
 - Understands context, not just keywords
 
-### Expected Accuracy
-- Traditional phishing: **95-98%**
-- AI-generated phishing: **90-95%**
-
 ---
 
-## 📁 Dataset Strategy
+## 📁 Dataset (V2)
 
-### Existing Datasets (FREE)
-| Dataset | Description | Use |
-|---------|-------------|-----|
-| Nazario Phishing Corpus | Real phishing emails | Phishing samples |
-| Enron Email Dataset | Legitimate corporate emails | Negative samples |
-| SpamAssassin Public Corpus | Spam vs Ham | Mixed samples |
-| Kaggle Phishing Datasets | Various collections | Additional samples |
+### Training Data — 9,600 samples
+| Source | Samples | Type |
+|--------|---------|------|
+| Enron Email Corpus | 2,993 | Legitimate |
+| LLM-Generated | 1,990 | Phishing + Legitimate |
+| Phishing Email Dataset | 1,500 | Phishing |
+| SpamAssassin Corpus | 1,000 | Mixed |
+| Nigerian Fraud | 995 | Phishing |
+| Nazario Corpus | 991 | Phishing |
+| Human-Generated | 131 | Mixed |
 
-### Custom Dataset (OUR CONTRIBUTION)
-- **AI-Generated Phishing Emails** — Created using free LLMs
-- This is a **novel contribution** — no public dataset exists for this
-- Target: 500-1000 AI-generated phishing samples
+**Label Distribution:** 4,983 legitimate (0) • 4,617 phishing (1)
 
-### Final Dataset Composition
-```
-Training Data
-├── Legitimate emails: ~5000 samples
-├── Traditional phishing: ~3000 samples
-└── AI-generated phishing: ~1000 samples (NOVEL)
-```
+### Novel Contribution
+- **AI-Generated Phishing Emails** — Custom LLM-generated dataset (1,990 samples)
+- Multi-source dataset combining 7 different corpora
+- Compares detection of human-written vs AI-written phishing
+- Total: **9,600 samples** across all categories
 
 ---
 
 ## 🛠️ Tech Stack (100% FREE)
 
-| Component | Technology | Cost |
-|-----------|------------|------|
-| ML Training | Google Colab / Kaggle | FREE |
-| NLP Model | HuggingFace DistilBERT | FREE |
-| URL Reputation | VirusTotal API (500 req/day) | FREE |
-| Domain Info | python-whois library | FREE |
-| Web Crawling | Playwright | FREE |
-| Backend | Python + FastAPI | FREE |
-| Frontend | React / HTML+JS | FREE |
-| Extension | Chrome Manifest V3 | FREE |
-| Backend Hosting | Render / Railway | FREE tier |
-| Frontend Hosting | Vercel / Netlify | FREE |
-| Database | SQLite / Supabase | FREE |
+| Component | Technology | Status |
+|-----------|------------|--------|
+| NLP Model | HuggingFace DistilBERT (fine-tuned) | ✅ |
+| Backend API | Python 3.12 + FastAPI + Uvicorn | ✅ |
+| URL Intelligence | python-whois + ssl + VirusTotal API | ✅ |
+| Web Crawling | Playwright Chromium (headless) | ✅ |
+| Visual Detection | Heuristic rules (12+ brands) | ✅ |
+| Link Analysis | requests + redirect chain tracking | ✅ |
+| Frontend | HTML + CSS + JS | ⬜ Planned |
+| Chrome Extension | Manifest V3 | ⬜ Planned |
+| CNN Visual Model | ResNet/EfficientNet on screenshots | ⬜ Planned |
 
 **Total Cost: ₹0**
 
 ---
 
-## 📅 Timeline (4 Weeks)
+## 📅 Timeline (5 Weeks)
 
-### Week 1: Data & Model
-- [ ] Download existing datasets (Nazario, Enron, SpamAssassin)
-- [ ] Generate AI phishing samples using LLM
-- [ ] Preprocess and clean all data
-- [ ] Fine-tune DistilBERT on combined dataset
-- [ ] Evaluate and tune model performance
+### Week 1: Data & Model ✅
+- [x] Download existing datasets (Nazario, Enron, SpamAssassin)
+- [x] Generate AI phishing samples using LLM
+- [x] Preprocess and clean all data
+- [x] Fine-tune DistilBERT — V1 (98.63%), V2 (99.17%)
+- [x] Evaluate and tune model performance
 
-### Week 2: Backend & URL Analysis
-- [ ] Set up FastAPI backend
-- [ ] Implement email parsing (extract text, URLs, headers)
-- [ ] Build URL analyzer (WHOIS, SSL, VirusTotal integration)
-- [ ] Create API endpoints
-- [ ] Basic testing
+### Week 2: Backend & URL Analysis ✅
+- [x] Set up FastAPI backend
+- [x] Implement email parsing (extract text, URLs, headers)
+- [x] Build URL analyzer (WHOIS, SSL, VirusTotal integration)
+- [x] Create API endpoints (`/analyze`, `/analyze-url`, `/full-analyze`)
+- [x] Basic testing
 
-### Week 3: Web Crawler & Visual Analysis
-- [ ] Set up Playwright for safe web crawling
-- [ ] Implement screenshot capture
-- [ ] Build visual analyzer (fake login detection)
-- [ ] Implement recursive link checker
-- [ ] Integrate all components
+### Week 3: Web Crawler & Visual Analysis ✅
+- [x] Set up Playwright for safe web crawling (multiprocessing for Windows)
+- [x] Implement screenshot capture (saved in `backend/screenshots/`)
+- [x] Build visual analyzer (fake login detection for 12+ brands)
+- [x] Implement recursive link checker (redirects, URL shorteners)
+- [x] Integrate all into `/deep-analyze` endpoint (5-layer pipeline)
 
-### Week 4: Frontend & Polish
-- [ ] Build web app UI
-- [ ] Create Chrome extension
+### Week 4: Frontend & Polish ⬜ ← YOU ARE HERE
+- [ ] Build web app UI (dashboard to paste & analyze emails)
+- [ ] Create Chrome extension (Gmail integration)
 - [ ] Connect everything to backend
 - [ ] Testing and bug fixes
-- [ ] Documentation
-- [ ] Prepare presentation
+- [ ] Documentation & presentation prep
+
+### Week 5: CNN Visual Model & Final Integration ⬜
+- [ ] Collect screenshot dataset (phishing vs real login pages)
+- [ ] Train CNN model (ResNet/EfficientNet) on page screenshots
+- [ ] Replace heuristic visual analyzer with CNN-based detection
+- [ ] Integrate CNN predictions into `/deep-analyze` risk scoring
+- [ ] Final testing, documentation, and paper prep
 
 ---
 
 ## 📂 Project Structure
 
 ```
-ai-phishing-detector/
+Hybrid-AI-Defense/
 ├── README.md
 ├── requirements.txt
 │
 ├── data/
 │   ├── raw/                    # Original datasets
-│   ├── processed/              # Cleaned data
-│   └── ai_generated/           # Our custom AI phishing samples
-│
-├── model/
-│   ├── train.py                # Training script
-│   ├── evaluate.py             # Evaluation metrics
-│   └── saved_models/           # Trained model files
+│   │   ├── human-generated/    # Human phishing + legit emails
+│   │   └── llm-generated/      # AI-generated phishing + legit
+│   └── processed/              # Cleaned data
 │
 ├── backend/
 │   ├── main.py                 # FastAPI app
+│   ├── config.py               # Settings (API keys, thresholds)
 │   ├── analyzers/
-│   │   ├── text_analyzer.py    # BERT-based text analysis
-│   │   ├── url_analyzer.py     # URL reputation & checks
-│   │   ├── web_crawler.py      # Playwright crawler
-│   │   ├── visual_analyzer.py  # Screenshot analysis
-│   │   └── aggregator.py       # Final risk scoring
-│   └── utils/
+│   │   ├── email_parser.py     # URL/email extraction from text
+│   │   ├── url_analyzer.py     # WHOIS + SSL + VirusTotal + patterns
+│   │   ├── web_crawler.py      # Playwright crawler (subprocess)
+│   │   ├── crawl_worker.py     # Isolated crawl process
+│   │   ├── visual_analyzer.py  # Fake login page detection
+│   │   └── link_checker.py     # Recursive redirect analysis
+│   ├── routers/
+│   │   ├── email_router.py     # /analyze endpoint
+│   │   ├── url_router.py       # /analyze-url, /full-analyze
+│   │   └── deep_router.py      # /deep-analyze (5-layer)
+│   ├── services/
+│   │   └── email_classifier.py # DistilBERT model service
+│   ├── models/
+│   │   └── schemas.py          # Pydantic request/response schemas
+│   └── screenshots/            # Crawled page screenshots
 │
-├── frontend/
+├── frontend/                   # (Week 4)
 │   ├── index.html
 │   ├── styles.css
 │   └── app.js
 │
-├── extension/
+├── extension/                  # (Week 4)
 │   ├── manifest.json
 │   ├── popup.html
-│   ├── popup.js
-│   └── background.js
+│   └── popup.js
 │
-├── notebooks/
-│   └── training.ipynb          # Colab notebook for training
-│
-└── docs/
-    ├── architecture.md
-    └── api.md
+└── notebooks/
+    └── training.ipynb          # Colab notebook for training
 ```
 
 ---
 
 ## 🎯 Deliverables
 
-1. **ML Model** — Fine-tuned DistilBERT for phishing detection
-2. **Backend API** — FastAPI service with all analyzers
-3. **Web Application** — UI to paste and analyze emails
-4. **Chrome Extension** — Gmail integration for real-time scanning
-5. **Documentation** — Full project documentation
-6. **Paper (Optional)** — Research paper for publication
+1. **ML Model** — Fine-tuned DistilBERT for phishing detection ✅
+2. **Backend API** — FastAPI service with all analyzers ✅
+3. **Web Application** — UI to paste and analyze emails ⬜
+4. **Chrome Extension** — Gmail integration for real-time scanning ⬜
+5. **CNN Visual Model** — Screenshot-based fake login detection ⬜
+6. **Documentation** — Full project documentation ⬜
+7. **Paper (Optional)** — Research paper for publication ⬜
 
 ---
 
@@ -268,35 +285,44 @@ ai-phishing-detector/
 ### Novel Contributions
 1. Custom dataset of AI-generated phishing emails
 2. Multi-modal detection system (text + URL + visual)
-3. Recursive redirect chain analysis
-4. Focus on LLM-generated threats
+3. CNN-based fake login page detection from screenshots
+4. Recursive redirect chain analysis
+5. Focus on LLM-generated threats
 
 ---
 
-## 🚀 Quick Start (Coming Soon)
+## 🚀 Quick Start
 
 ```bash
 # Clone the repo
 git clone <repo-url>
 
+# Set up virtual environment
+python -m venv .venv
+.venv\Scripts\activate       # Windows
+
 # Install dependencies
+cd backend
 pip install -r requirements.txt
+playwright install chromium
 
 # Run backend
-cd backend
-uvicorn main:app --reload
+uvicorn main:app --reload --port 8001
 
-# Run frontend
-cd frontend
-# Open index.html in browser
+# API docs available at:
+# http://localhost:8001/docs
 ```
 
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/analyze` | ML text classification only |
+| POST | `/api/v1/analyze-url` | URL static analysis (WHOIS, SSL, VT) |
+| POST | `/api/v1/full-analyze` | Text + URL analysis combined |
+| POST | `/api/v1/deep-analyze` | **Full 5-layer pipeline** (text + URL + crawl + visual + links) |
+| GET | `/api/v1/health` | Health check |
+
 ---
 
-## 📞 Support
-
-Built with the help of OC 🔥
-
----
-
-*Last Updated: February 3, 2026*
+*Last Updated: February 16, 2026*
