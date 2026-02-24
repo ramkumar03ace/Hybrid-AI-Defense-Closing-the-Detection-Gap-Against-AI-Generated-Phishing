@@ -125,6 +125,32 @@ function resetLayerCard(layerRef) {
     layerRef.flags.innerHTML = '<li style="color:var(--text-muted);opacity:0.5;">No data</li>';
 }
 
+// ---------- Collapsible URLs Toggle ----------
+function appendUrlsToggle(flagsEl, urlsList) {
+    const toggle = document.createElement('li');
+    toggle.className = 'urls-toggle';
+    toggle.textContent = `▶ Show ${urlsList.length} URL(s)`;
+    toggle.style.cssText = 'cursor:pointer;user-select:none;font-weight:600;color:var(--accent);opacity:0.8;list-style:none;';
+    flagsEl.appendChild(toggle);
+
+    const urlItems = [];
+    urlsList.forEach(u => {
+        const li = document.createElement('li');
+        li.textContent = u;
+        li.className = 'url-item';
+        li.style.cssText = 'display:none;font-size:0.65rem;opacity:0.7;word-break:break-all;overflow-wrap:anywhere;';
+        flagsEl.appendChild(li);
+        urlItems.push(li);
+    });
+
+    let expanded = false;
+    toggle.addEventListener('click', () => {
+        expanded = !expanded;
+        toggle.textContent = expanded ? `▼ Hide ${urlsList.length} URL(s)` : `▶ Show ${urlsList.length} URL(s)`;
+        urlItems.forEach(li => li.style.display = expanded ? 'flex' : 'none');
+    });
+}
+
 // ---------- Render Results ----------
 function renderResults(data) {
     resultsSection.classList.add('visible');
@@ -169,16 +195,15 @@ function renderResults(data) {
                 r.flags.slice(0, 2).forEach(f => urlFlags.push(f));
             }
         });
-        if (data.urls_list && data.urls_list.length > 0) {
-            urlFlags.push('── URLs Found ──');
-            data.urls_list.forEach(u => urlFlags.push(u));
-        }
         setLayerCard(layers.url, data.url_analysis.highest_risk, urlFlags);
+        if (data.urls_list && data.urls_list.length > 0) {
+            appendUrlsToggle(layers.url.flags, data.urls_list);
+        }
     } else {
         if (data.urls_list && data.urls_list.length > 0) {
-            const urlFlags = [`${data.urls_list.length} URL(s) found`, '── URLs Found ──'];
-            data.urls_list.forEach(u => urlFlags.push(u));
+            const urlFlags = [`${data.urls_list.length} URL(s) found`];
             setLayerCard(layers.url, 0, urlFlags);
+            appendUrlsToggle(layers.url.flags, data.urls_list);
         } else {
             resetLayerCard(layers.url);
         }
