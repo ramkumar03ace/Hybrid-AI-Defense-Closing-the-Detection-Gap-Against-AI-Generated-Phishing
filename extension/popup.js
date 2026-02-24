@@ -24,9 +24,6 @@ const errorToast = $('#errorToast');
 const riskFactorsCard = $('#riskFactorsCard');
 const riskFactorsList = $('#riskFactorsList');
 
-// Store email HTML separately (textarea only holds plain text)
-let storedEmailHtml = null;
-
 const layers = {
     text: { score: $('#textScore'), bar: $('#textBar'), flags: $('#textFlags') },
     url: { score: $('#urlScore'), bar: $('#urlBar'), flags: $('#urlFlags') },
@@ -172,9 +169,19 @@ function renderResults(data) {
                 r.flags.slice(0, 2).forEach(f => urlFlags.push(f));
             }
         });
+        if (data.urls_list && data.urls_list.length > 0) {
+            urlFlags.push('── URLs Found ──');
+            data.urls_list.forEach(u => urlFlags.push(u));
+        }
         setLayerCard(layers.url, data.url_analysis.highest_risk, urlFlags);
     } else {
-        resetLayerCard(layers.url);
+        if (data.urls_list && data.urls_list.length > 0) {
+            const urlFlags = [`${data.urls_list.length} URL(s) found`, '── URLs Found ──'];
+            data.urls_list.forEach(u => urlFlags.push(u));
+            setLayerCard(layers.url, 0, urlFlags);
+        } else {
+            resetLayerCard(layers.url);
+        }
     }
 
     // Layer 3: Crawl
@@ -272,8 +279,12 @@ async function extractFromGmail() {
         const response = await chrome.tabs.sendMessage(tab.id, { action: 'extract_email' });
 
         if (response && response.success) {
-            emailInput.value = response.body;
-            storedEmailHtml = response.body_html || null;
+            // Set HTML directly in contenteditable div (preserves links)
+            if (response.body_html) {
+                emailInput.innerHTML = response.body_html;
+            } else {
+                emailInput.innerText = response.body;
+            }
             if (response.subject) {
                 subjectInput.value = response.subject;
             }
@@ -302,12 +313,15 @@ async function extractFromGmail() {
 
 // ---------- Analyze ----------
 async function analyze() {
-    const text = emailInput.value.trim();
+    const text = emailInput.innerText.trim();
     if (!text) {
         showError('Please enter or extract an email to scan.');
         emailInput.focus();
         return;
     }
+
+    // Get the raw HTML from the contenteditable div (preserves <a href> links)
+    const emailHtml = emailInput.innerHTML || null;
 
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
@@ -316,7 +330,7 @@ async function analyze() {
     try {
         const body = {
             text,
-            email_html: storedEmailHtml || null,
+            email_html: emailHtml,
             subject: subjectInput.value.trim() || null,
             crawl_urls: crawlToggle.checked,
             take_screenshots: screenshotToggle.checked,
@@ -366,20 +380,6 @@ emailInput.addEventListener('keydown', (e) => {
         e.preventDefault();
         analyze();
     }
-});
-
-// Capture HTML from clipboard paste
-emailInput.addEventListener('paste', (e) => {
-    const html = e.clipboardData?.getData('text/html');
-    if (html) {
-        storedEmailHtml = html;
-    }
-});
-
-// Clear stored HTML if user manually types
-emailInput.addEventListener('input', () => {
-    // Only clear if not from paste (paste fires input too, but after our paste handler)
-    if (!storedEmailHtml) return;
 });
 
 // ---------- Init ----------

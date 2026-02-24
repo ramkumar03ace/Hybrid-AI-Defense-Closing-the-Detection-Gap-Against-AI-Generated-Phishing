@@ -295,6 +295,7 @@ async def deep_analysis(request: DeepAnalysisRequest):
         return DeepAnalysisResponse(
             text_analysis=text_result,
             urls_found=len(urls),
+            urls_list=urls,
             url_analysis=url_response,
             crawl_results=crawl_schemas,
             visual_analysis=visual_schemas,

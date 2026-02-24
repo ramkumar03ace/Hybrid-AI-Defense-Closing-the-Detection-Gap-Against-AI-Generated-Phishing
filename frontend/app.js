@@ -22,9 +22,6 @@ const errorToast = $('#errorToast');
 const riskFactorsCard = $('#riskFactorsCard');
 const riskFactorsList = $('#riskFactorsList');
 
-// Store email HTML separately (textarea only holds plain text)
-let storedEmailHtml = null;
-
 // Layer refs
 const layers = {
     text: { score: $('#textScore'), bar: $('#textBar'), flags: $('#textFlags') },
@@ -176,9 +173,21 @@ function renderResults(data) {
                 r.flags.slice(0, 3).forEach(f => urlFlags.push(f));
             }
         });
+        // Show found URLs
+        if (data.urls_list && data.urls_list.length > 0) {
+            urlFlags.push('── URLs Found ──');
+            data.urls_list.forEach(u => urlFlags.push(u));
+        }
         setLayerCard(layers.url, urlRisk, urlFlags);
     } else {
-        resetLayerCard(layers.url);
+        // Still show URLs found even if no URL analysis
+        if (data.urls_list && data.urls_list.length > 0) {
+            const urlFlags = [`${data.urls_list.length} URL(s) found`, '── URLs Found ──'];
+            data.urls_list.forEach(u => urlFlags.push(u));
+            setLayerCard(layers.url, 0, urlFlags);
+        } else {
+            resetLayerCard(layers.url);
+        }
     }
 
     // --- Layer 3: Crawl ---
@@ -245,12 +254,15 @@ function escapeHtml(str) {
 
 // ---------- Analyze ----------
 async function analyze() {
-    const text = emailInput.value.trim();
+    const text = emailInput.innerText.trim();
     if (!text) {
         showError('Please enter an email body to analyze.');
         emailInput.focus();
         return;
     }
+
+    // Get the raw HTML from the contenteditable div (preserves <a href> links)
+    const emailHtml = emailInput.innerHTML || null;
 
     // Set loading state
     analyzeBtn.classList.add('loading');
@@ -260,7 +272,7 @@ async function analyze() {
     try {
         const body = {
             text,
-            email_html: storedEmailHtml || null,
+            email_html: emailHtml,
             subject: subjectInput.value.trim() || null,
             crawl_urls: crawlToggle.checked,
             take_screenshots: screenshotToggle.checked,
@@ -316,11 +328,3 @@ emailInput.addEventListener('keydown', (e) => {
 checkHealth();
 // Re-check health every 30 seconds
 setInterval(checkHealth, 30000);
-
-// Capture HTML from clipboard paste
-emailInput.addEventListener('paste', (e) => {
-    const html = e.clipboardData?.getData('text/html');
-    if (html) {
-        storedEmailHtml = html;
-    }
-});

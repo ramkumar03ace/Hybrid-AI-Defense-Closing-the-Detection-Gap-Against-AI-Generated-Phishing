@@ -168,6 +168,7 @@ class DeepAnalysisResponse(BaseModel):
     
     # Layer 2: URL static analysis
     urls_found: int = Field(0, description="URLs found in email")
+    urls_list: List[str] = Field(default_factory=list, description="List of URLs found")
     url_analysis: Optional[URLAnalysisResponse] = Field(None, description="URL analysis")
     
     # Layer 3: Web crawling
