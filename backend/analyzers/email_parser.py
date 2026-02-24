@@ -35,10 +35,10 @@ class EmailParser:
     @staticmethod
     def extract_urls(text: str) -> List[str]:
         """
-        Extract all URLs from text.
+        Extract all URLs from text, including links inside HTML tags.
         
         Args:
-            text: Email body or raw content
+            text: Email body or raw content (plain text or HTML)
             
         Returns:
             List of unique URLs found
@@ -46,9 +46,28 @@ class EmailParser:
         if not text:
             return []
         
-        urls = EmailParser.URL_PATTERN.findall(text)
+        urls = []
         
-        # Also catch common URL-like patterns without protocol
+        # 1. Extract URLs from HTML href attributes (catches links in images, buttons, etc.)
+        href_pattern = re.compile(
+            r'<a\s+[^>]*href\s*=\s*["\']([^"\']+)["\']',
+            re.IGNORECASE
+        )
+        urls.extend(href_pattern.findall(text))
+        
+        # 2. Extract URLs from HTML src attributes (img, iframe, etc.)
+        src_pattern = re.compile(
+            r'<(?:img|iframe|source)\s+[^>]*src\s*=\s*["\']([^"\']+)["\']',
+            re.IGNORECASE
+        )
+        src_urls = src_pattern.findall(text)
+        # Only include src URLs that look like full links (not relative paths or data URIs)
+        urls.extend([u for u in src_urls if u.startswith(('http://', 'https://'))])
+        
+        # 3. Extract URLs from plain text using regex
+        urls.extend(EmailParser.URL_PATTERN.findall(text))
+        
+        # 4. Also catch common URL-like patterns without protocol
         bare_url_pattern = re.compile(
             r'\b(?:www\.)[a-zA-Z0-9][-a-zA-Z0-9]*(?:\.[a-zA-Z]{2,})+[/\w\-.~:/?#\[\]@!$&\'()*+,;=%]*',
             re.IGNORECASE
@@ -60,8 +79,8 @@ class EmailParser:
         seen = set()
         unique_urls = []
         for url in urls:
-            clean_url = url.rstrip('.,;:!?)\'\">')
-            if clean_url not in seen:
+            clean_url = url.rstrip('.,;:!?)\'\">').strip()
+            if clean_url and clean_url not in seen and clean_url.startswith(('http://', 'https://')):
                 seen.add(clean_url)
                 unique_urls.append(clean_url)
         

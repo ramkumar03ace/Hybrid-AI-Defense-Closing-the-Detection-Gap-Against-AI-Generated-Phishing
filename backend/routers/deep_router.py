@@ -83,6 +83,15 @@ async def deep_analysis(request: DeepAnalysisRequest):
         parsed_email = EmailParser.parse(request.text, request.subject)
         urls = parsed_email.urls
         
+        # Also extract URLs from raw HTML (captures href links on images, buttons, etc.)
+        if request.email_html:
+            html_urls = EmailParser.extract_urls(request.email_html)
+            existing = set(urls)
+            for u in html_urls:
+                if u not in existing:
+                    urls.append(u)
+                    existing.add(u)
+        
         url_response = None
         max_url_risk = 0.0
         
@@ -127,7 +136,13 @@ async def deep_analysis(request: DeepAnalysisRequest):
         visual_schemas = []
         max_visual_risk = 0.0
         
-        if urls and request.crawl_urls:
+        # Crawl only runs when crawl toggle is enabled
+        # (UI enforces: screenshots requires crawl to be on)
+        should_crawl = urls and request.crawl_urls
+        # Visual analysis only runs when screenshots are also enabled
+        should_visual = request.take_screenshots
+        
+        if should_crawl:
             for url in urls[:5]:  # Limit to 5 URLs
                 try:
                     crawl_result = await web_crawler.crawl_url(
@@ -150,8 +165,9 @@ async def deep_analysis(request: DeepAnalysisRequest):
                     
                     # ==========================================
                     # LAYER 4: Visual Analysis (per crawled page)
+                    # Only runs when screenshots are enabled
                     # ==========================================
-                    if not crawl_result.error:
+                    if should_visual and not crawl_result.error:
                         visual_result = visual_analyzer.analyze(crawl_result)
                         
                         visual_schemas.append(VisualAnalysisSchema(
@@ -175,6 +191,21 @@ async def deep_analysis(request: DeepAnalysisRequest):
                 analysis_layers.append("web_crawling")
             if visual_schemas:
                 analysis_layers.append("visual_analysis")
+        
+        # Compute crawl risk from crawl findings
+        crawl_risk = 0.0
+        if crawl_schemas:
+            for cs in crawl_schemas:
+                if cs.error:
+                    continue
+                if cs.has_password_field:
+                    crawl_risk = max(crawl_risk, 0.7)
+                    risk_factors.append("Password field detected on crawled page")
+                elif cs.has_login_form:
+                    crawl_risk = max(crawl_risk, 0.5)
+                    risk_factors.append("Login form detected on crawled page")
+                if cs.was_redirected:
+                    crawl_risk = max(crawl_risk, 0.3)
         
         # ==========================================
         # LAYER 5: Link Checking
@@ -201,29 +232,54 @@ async def deep_analysis(request: DeepAnalysisRequest):
             analysis_layers.append("link_checking")
         
         # ==========================================
-        # COMBINED SCORING
+        # COMBINED SCORING — Dynamic Weight Redistribution
         # ==========================================
-        # Weighted combination of all layers:
-        #   Text:   15%  (reduced — V2 model needs improvement)
-        #   URL:    30%
-        #   Visual: 25%
+        # Base weights (when all layers are active):
+        #   Text:   15%
+        #   URL:    25%
+        #   Crawl:  10%
+        #   Visual: 20%
         #   Links:  20%
-        #   Other:  10% (reserved)
+        #
+        # When a layer is disabled/skipped, its weight is
+        # redistributed proportionally among active layers.
         text_risk = confidence if is_phishing else (1 - confidence)
         
-        combined_risk = (
-            text_risk * 0.15 +
-            max_url_risk * 0.30 +
-            max_visual_risk * 0.25 +
-            link_risk * 0.20
-        )
+        # Build active layers with their base weights
+        active_scores = {}
+        active_scores["text"] = (text_risk, 0.15)
+        
+        if url_response:
+            active_scores["url"] = (max_url_risk, 0.25)
+        
+        if crawl_schemas:
+            active_scores["crawl"] = (crawl_risk, 0.10)
+        
+        if visual_schemas:
+            active_scores["visual"] = (max_visual_risk, 0.20)
+        
+        if link_schema:
+            active_scores["links"] = (link_risk, 0.20)
+        
+        # Normalize weights so they sum to ~0.90 (matching original total)
+        # then compute weighted sum
+        total_base_weight = sum(w for _, w in active_scores.values())
+        
+        if total_base_weight > 0:
+            combined_risk = sum(
+                score * (weight / total_base_weight * 0.90)
+                for score, weight in active_scores.values()
+            )
+        else:
+            combined_risk = text_risk * 0.90
         
         # Boost if multiple layers flag it (2+ layers = +0.15)
         flagging_layers = sum([
             is_phishing,
-            max_url_risk >= 0.30,
-            max_visual_risk >= 0.40,
-            link_risk >= 0.30,
+            max_url_risk >= 0.30 if url_response else False,
+            crawl_risk >= 0.40 if crawl_schemas else False,
+            max_visual_risk >= 0.40 if visual_schemas else False,
+            link_risk >= 0.30 if link_schema else False,
         ])
         if flagging_layers >= 2:
             combined_risk = min(1.0, combined_risk + 0.15)

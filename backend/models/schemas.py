@@ -155,6 +155,7 @@ class LinkCheckSchema(BaseModel):
 class DeepAnalysisRequest(BaseModel):
     """Request for deep analysis (text + URL + crawl + visual)."""
     text: str = Field(..., description="Email body text", min_length=1)
+    email_html: Optional[str] = Field(None, description="Raw HTML of email (for extracting links from images, buttons, etc.)")
     subject: Optional[str] = Field(None, description="Email subject line")
     crawl_urls: bool = Field(True, description="Whether to crawl URLs with browser")
     take_screenshots: bool = Field(True, description="Whether to capture screenshots")

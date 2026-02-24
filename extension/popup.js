@@ -1,5 +1,6 @@
 /* ============================================
-   HYBRID AI DEFENSE — Frontend Logic
+   Hybrid AI Defense — Extension Popup Logic
+   Connects to backend /deep-analyze endpoint
    ============================================ */
 
 const API_BASE = 'http://localhost:8001/api/v1';
@@ -7,6 +8,7 @@ const API_BASE = 'http://localhost:8001/api/v1';
 // ---------- DOM Refs ----------
 const $ = (sel) => document.querySelector(sel);
 const statusChip = $('#statusChip');
+const extractBtn = $('#extractBtn');
 const analyzeBtn = $('#analyzeBtn');
 const emailInput = $('#emailInput');
 const subjectInput = $('#subjectInput');
@@ -25,7 +27,6 @@ const riskFactorsList = $('#riskFactorsList');
 // Store email HTML separately (textarea only holds plain text)
 let storedEmailHtml = null;
 
-// Layer refs
 const layers = {
     text: { score: $('#textScore'), bar: $('#textBar'), flags: $('#textFlags') },
     url: { score: $('#urlScore'), bar: $('#urlBar'), flags: $('#urlFlags') },
@@ -37,18 +38,18 @@ const layers = {
 // ---------- Health Check ----------
 async function checkHealth() {
     try {
-        const res = await fetch(`${API_BASE}/health`);
+        const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(3000) });
         const data = await res.json();
         if (data.model_loaded) {
-            statusChip.textContent = '● API Online — Model Loaded';
-            statusChip.className = 'status-chip status-chip--online';
+            statusChip.textContent = '● API Online';
+            statusChip.className = 'status-chip online';
         } else {
-            statusChip.textContent = '● API Degraded — Model Not Loaded';
-            statusChip.className = 'status-chip status-chip--offline';
+            statusChip.textContent = '● API Degraded';
+            statusChip.className = 'status-chip offline';
         }
     } catch {
         statusChip.textContent = '● API Offline';
-        statusChip.className = 'status-chip status-chip--offline';
+        statusChip.className = 'status-chip offline';
     }
 }
 
@@ -58,7 +59,7 @@ function showError(msg) {
     errorToast.textContent = msg;
     errorToast.classList.add('visible');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => errorToast.classList.remove('visible'), 5000);
+    toastTimer = setTimeout(() => errorToast.classList.remove('visible'), 4000);
 }
 
 // ---------- Color Helpers ----------
@@ -81,25 +82,22 @@ function verdictHex(verdict) {
 }
 
 // ---------- Gauge ----------
-const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 40; // r=40
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * 40;
 
 function setGauge(score, verdict) {
     const offset = GAUGE_CIRCUMFERENCE * (1 - score);
     gaugeFill.style.strokeDashoffset = offset;
     gaugeFill.style.stroke = verdictHex(verdict);
-    // Animate score number
     animateNumber(gaugeScore, score);
 }
 
 function animateNumber(el, target) {
-    const duration = 1000;
+    const duration = 800;
     const start = performance.now();
-    const from = 0;
     function tick(now) {
         const progress = Math.min((now - start) / duration, 1);
         const ease = 1 - Math.pow(1 - progress, 3);
-        const val = from + (target - from) * ease;
-        el.textContent = (val * 100).toFixed(0) + '%';
+        el.textContent = (target * ease * 100).toFixed(0) + '%';
         if (progress < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -109,9 +107,8 @@ function animateNumber(el, target) {
 function setLayerCard(layerRef, score, flagsArr) {
     const cls = scoreColorClass(score);
     layerRef.score.textContent = (score * 100).toFixed(0) + '%';
-    layerRef.score.className = `layer-card__score score-${cls}`;
-    layerRef.bar.className = `layer-card__bar-fill bar-${cls}`;
-    // Trigger animation after a frame
+    layerRef.score.className = `layer-score score-${cls}`;
+    layerRef.bar.className = `layer-bar__fill bar-${cls}`;
     requestAnimationFrame(() => {
         layerRef.bar.style.width = `${Math.max(score * 100, 2)}%`;
     });
@@ -125,15 +122,14 @@ function setLayerCard(layerRef, score, flagsArr) {
 
 function resetLayerCard(layerRef) {
     layerRef.score.textContent = '—';
-    layerRef.score.className = 'layer-card__score';
+    layerRef.score.className = 'layer-score';
     layerRef.bar.style.width = '0';
-    layerRef.bar.className = 'layer-card__bar-fill';
+    layerRef.bar.className = 'layer-bar__fill';
     layerRef.flags.innerHTML = '<li style="color:var(--text-muted);opacity:0.5;">No data</li>';
 }
 
 // ---------- Render Results ----------
 function renderResults(data) {
-    // Show section
     resultsSection.classList.add('visible');
     resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -157,41 +153,41 @@ function renderResults(data) {
         .map(l => `<span>${layerNames[l] || l}</span>`)
         .join('');
 
-    // --- Layer 1: Text ---
+    // Layer 1: Text
     const textConf = data.text_analysis.confidence;
     const textRisk = data.text_analysis.is_phishing ? textConf : (1 - textConf);
-    const textFlags = [];
-    textFlags.push(`Label: ${data.text_analysis.label}`);
-    textFlags.push(`Confidence: ${(textConf * 100).toFixed(1)}%`);
-    textFlags.push(`Risk Level: ${data.text_analysis.risk_level}`);
+    const textFlags = [
+        `Label: ${data.text_analysis.label}`,
+        `Confidence: ${(textConf * 100).toFixed(1)}%`,
+        `Risk: ${data.text_analysis.risk_level}`,
+    ];
     setLayerCard(layers.text, textRisk, textFlags);
 
-    // --- Layer 2: URL ---
+    // Layer 2: URL
     if (data.url_analysis && data.url_analysis.results.length > 0) {
-        const urlRisk = data.url_analysis.highest_risk;
         const urlFlags = [];
-        urlFlags.push(`${data.url_analysis.total_urls} URL(s) found, ${data.url_analysis.suspicious_count} suspicious`);
+        urlFlags.push(`${data.url_analysis.total_urls} URL(s), ${data.url_analysis.suspicious_count} suspicious`);
         data.url_analysis.results.forEach(r => {
             if (r.flags && r.flags.length > 0) {
-                r.flags.slice(0, 3).forEach(f => urlFlags.push(f));
+                r.flags.slice(0, 2).forEach(f => urlFlags.push(f));
             }
         });
-        setLayerCard(layers.url, urlRisk, urlFlags);
+        setLayerCard(layers.url, data.url_analysis.highest_risk, urlFlags);
     } else {
         resetLayerCard(layers.url);
     }
 
-    // --- Layer 3: Crawl ---
+    // Layer 3: Crawl
     if (data.crawl_results && data.crawl_results.length > 0) {
         const crawlFlags = [];
         let maxCrawlRisk = 0;
         data.crawl_results.forEach(c => {
             if (c.error) {
-                crawlFlags.push(`❌ ${c.url}: ${c.error}`);
+                crawlFlags.push(`❌ ${c.error}`);
             } else {
-                crawlFlags.push(`${c.page_title || 'Untitled'} — ${c.final_url}`);
-                if (c.has_login_form) { crawlFlags.push('⚠️ Login form detected'); maxCrawlRisk = Math.max(maxCrawlRisk, 0.5); }
-                if (c.has_password_field) { crawlFlags.push('⚠️ Password field detected'); maxCrawlRisk = Math.max(maxCrawlRisk, 0.6); }
+                crawlFlags.push(`${c.page_title || 'Untitled'}`);
+                if (c.has_login_form) { crawlFlags.push('⚠️ Login form'); maxCrawlRisk = Math.max(maxCrawlRisk, 0.5); }
+                if (c.has_password_field) { crawlFlags.push('⚠️ Password field'); maxCrawlRisk = Math.max(maxCrawlRisk, 0.6); }
                 if (c.was_redirected) { crawlFlags.push(`↪ Redirected (${c.redirect_chain.length} hops)`); maxCrawlRisk = Math.max(maxCrawlRisk, 0.3); }
             }
         });
@@ -200,32 +196,32 @@ function renderResults(data) {
         resetLayerCard(layers.crawl);
     }
 
-    // --- Layer 4: Visual ---
+    // Layer 4: Visual
     if (data.visual_analysis && data.visual_analysis.length > 0) {
         const maxVisRisk = Math.max(...data.visual_analysis.map(v => v.risk_score));
         const visFlags = [];
         data.visual_analysis.forEach(v => {
-            if (v.is_fake_login) visFlags.push(`🚨 Fake login page — ${v.impersonated_brand || 'unknown brand'}`);
-            (v.flags || []).slice(0, 3).forEach(f => visFlags.push(f));
+            if (v.is_fake_login) visFlags.push(`🚨 Fake login — ${v.impersonated_brand || 'unknown'}`);
+            (v.flags || []).slice(0, 2).forEach(f => visFlags.push(f));
         });
-        if (visFlags.length === 0) visFlags.push('No visual threats detected');
+        if (visFlags.length === 0) visFlags.push('No visual threats');
         setLayerCard(layers.visual, maxVisRisk, visFlags);
     } else {
         resetLayerCard(layers.visual);
     }
 
-    // --- Layer 5: Links ---
+    // Layer 5: Links
     if (data.link_analysis) {
         const la = data.link_analysis;
         const linkFlags = [];
-        linkFlags.push(`${la.total_links} links found, ${la.checked_links} checked, ${la.suspicious_links} suspicious`);
-        (la.flags || []).slice(0, 4).forEach(f => linkFlags.push(f));
+        linkFlags.push(`${la.total_links} links, ${la.suspicious_links} suspicious`);
+        (la.flags || []).slice(0, 3).forEach(f => linkFlags.push(f));
         setLayerCard(layers.links, la.risk_score, linkFlags);
     } else {
         resetLayerCard(layers.links);
     }
 
-    // --- Risk Factors ---
+    // Risk Factors
     if (data.risk_factors && data.risk_factors.length > 0) {
         riskFactorsCard.style.display = 'block';
         riskFactorsList.innerHTML = data.risk_factors
@@ -236,23 +232,83 @@ function renderResults(data) {
     }
 }
 
-// ---------- HTML Escape ----------
+// ---------- Escape HTML ----------
 function escapeHtml(str) {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
 }
 
+// ---------- Extract from Gmail ----------
+async function extractFromGmail() {
+    extractBtn.disabled = true;
+
+    try {
+        // Get the active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+        if (!tab || !tab.url || !tab.url.includes('mail.google.com')) {
+            extractBtn.classList.add('error');
+            extractBtn.querySelector('.btn-icon').textContent = '❌';
+            showError('Please open Gmail first!');
+            setTimeout(() => {
+                extractBtn.classList.remove('error');
+                extractBtn.querySelector('.btn-icon').textContent = '📧';
+            }, 2000);
+            return;
+        }
+
+        // Inject content script if not already loaded
+        try {
+            await chrome.scripting.executeScript({
+                target: { tabId: tab.id },
+                files: ['content.js'],
+            });
+        } catch {
+            // Content script might already be injected
+        }
+
+        // Send message to content script
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'extract_email' });
+
+        if (response && response.success) {
+            emailInput.value = response.body;
+            storedEmailHtml = response.body_html || null;
+            if (response.subject) {
+                subjectInput.value = response.subject;
+            }
+            extractBtn.classList.add('success');
+            extractBtn.querySelector('.btn-icon').textContent = '✅';
+            setTimeout(() => {
+                extractBtn.classList.remove('success');
+                extractBtn.querySelector('.btn-icon').textContent = '📧';
+            }, 2000);
+        } else {
+            showError(response?.error || 'Could not extract email. Open an email first.');
+            extractBtn.classList.add('error');
+            extractBtn.querySelector('.btn-icon').textContent = '❌';
+            setTimeout(() => {
+                extractBtn.classList.remove('error');
+                extractBtn.querySelector('.btn-icon').textContent = '📧';
+            }, 2000);
+        }
+    } catch (err) {
+        showError('Extraction failed. Make sure you have an email open in Gmail.');
+        console.error('Extract error:', err);
+    } finally {
+        extractBtn.disabled = false;
+    }
+}
+
 // ---------- Analyze ----------
 async function analyze() {
     const text = emailInput.value.trim();
     if (!text) {
-        showError('Please enter an email body to analyze.');
+        showError('Please enter or extract an email to scan.');
         emailInput.focus();
         return;
     }
 
-    // Set loading state
     analyzeBtn.classList.add('loading');
     analyzeBtn.disabled = true;
     resultsSection.classList.remove('visible');
@@ -290,6 +346,7 @@ async function analyze() {
 }
 
 // ---------- Event Listeners ----------
+extractBtn.addEventListener('click', extractFromGmail);
 analyzeBtn.addEventListener('click', analyze);
 
 // Screenshot toggle depends on crawl toggle
@@ -304,18 +361,12 @@ crawlToggle.addEventListener('change', () => {
     }
 });
 
-// Ctrl+Enter to submit
 emailInput.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         analyze();
     }
 });
-
-// ---------- Init ----------
-checkHealth();
-// Re-check health every 30 seconds
-setInterval(checkHealth, 30000);
 
 // Capture HTML from clipboard paste
 emailInput.addEventListener('paste', (e) => {
@@ -324,3 +375,12 @@ emailInput.addEventListener('paste', (e) => {
         storedEmailHtml = html;
     }
 });
+
+// Clear stored HTML if user manually types
+emailInput.addEventListener('input', () => {
+    // Only clear if not from paste (paste fires input too, but after our paste handler)
+    if (!storedEmailHtml) return;
+});
+
+// ---------- Init ----------
+checkHealth();

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hybrid AI Defense</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header__badge">
+        <span class="dot"></span>
+        Hybrid AI Defense
+      </div>
+      <h1 class="header__title">Phishing <span class="accent">Scanner</span></h1>
+      <div class="status-chip" id="statusChip">Checking API…</div>
+    </header>
+
+    <!-- Input Section -->
+    <section class="input-section" id="inputSection">
+
+      <button class="btn-extract" id="extractBtn">
+        <span class="btn-icon">📧</span>
+        Extract from Gmail
+      </button>
+
+      <div class="or-divider"><span>or paste manually</span></div>
+
+      <div class="input-group">
+        <label for="subjectInput">Subject</label>
+        <input type="text" id="subjectInput" placeholder="Email subject line…" />
+      </div>
+
+      <div class="input-group">
+        <label for="emailInput">Email Body</label>
+        <textarea id="emailInput" rows="6" placeholder="Paste email text here…"></textarea>
+      </div>
+
+      <div class="options-row">
+        <label class="toggle-group">
+          <input type="checkbox" id="crawlToggle" checked />
+          Web Crawl
+        </label>
+        <label class="toggle-group">
+          <input type="checkbox" id="screenshotToggle" checked />
+          Screenshots
+        </label>
+      </div>
+
+      <button class="btn-analyze" id="analyzeBtn">
+        <span class="btn-text">🔍 Scan Email</span>
+        <span class="spinner"></span>
+      </button>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="resultsSection">
+
+      <!-- Verdict -->
+      <div class="verdict-banner" id="verdictBanner">
+        <div class="gauge-container">
+          <svg viewBox="0 0 100 100">
+            <circle class="gauge-bg" cx="50" cy="50" r="40" />
+            <circle class="gauge-fill" id="gaugeFill" cx="50" cy="50" r="40"
+              stroke-dasharray="251.33" stroke-dashoffset="251.33" />
+          </svg>
+          <div class="gauge-label">
+            <span class="gauge-score" id="gaugeScore">0</span>
+            <span class="gauge-tag">Risk</span>
+          </div>
+        </div>
+        <div class="verdict-info">
+          <div class="verdict-label">Overall Verdict</div>
+          <div class="verdict-text" id="verdictText">—</div>
+          <div class="verdict-layers" id="layersBadges"></div>
+        </div>
+      </div>
+
+      <!-- Layer Cards -->
+      <div class="layer-grid">
+
+        <!-- Text -->
+        <div class="layer-card">
+          <div class="layer-card__header">
+            <span class="layer-name"><span class="li">🧠</span> Text</span>
+            <span class="layer-score" id="textScore">—</span>
+          </div>
+          <div class="layer-bar"><div class="layer-bar__fill" id="textBar"></div></div>
+          <ul class="layer-flags" id="textFlags"></ul>
+        </div>
+
+        <!-- URL -->
+        <div class="layer-card">
+          <div class="layer-card__header">
+            <span class="layer-name"><span class="li">🔗</span> URL</span>
+            <span class="layer-score" id="urlScore">—</span>
+          </div>
+          <div class="layer-bar"><div class="layer-bar__fill" id="urlBar"></div></div>
+          <ul class="layer-flags" id="urlFlags"></ul>
+        </div>
+
+        <!-- Crawl -->
+        <div class="layer-card">
+          <div class="layer-card__header">
+            <span class="layer-name"><span class="li">🕷️</span> Crawl</span>
+            <span class="layer-score" id="crawlScore">—</span>
+          </div>
+          <div class="layer-bar"><div class="layer-bar__fill" id="crawlBar"></div></div>
+          <ul class="layer-flags" id="crawlFlags"></ul>
+        </div>
+
+        <!-- Visual -->
+        <div class="layer-card">
+          <div class="layer-card__header">
+            <span class="layer-name"><span class="li">👁️</span> Visual</span>
+            <span class="layer-score" id="visualScore">—</span>
+          </div>
+          <div class="layer-bar"><div class="layer-bar__fill" id="visualBar"></div></div>
+          <ul class="layer-flags" id="visualFlags"></ul>
+        </div>
+
+        <!-- Links -->
+        <div class="layer-card">
+          <div class="layer-card__header">
+            <span class="layer-name"><span class="li">🔀</span> Links</span>
+            <span class="layer-score" id="linkScore">—</span>
+          </div>
+          <div class="layer-bar"><div class="layer-bar__fill" id="linkBar"></div></div>
+          <ul class="layer-flags" id="linkFlags"></ul>
+        </div>
+
+      </div>
+
+      <!-- Risk Factors -->
+      <div class="risk-factors" id="riskFactorsCard" style="display:none;">
+        <div class="section-title"><span class="icon">⚠️</span> Risk Factors</div>
+        <ul class="risk-list" id="riskFactorsList"></ul>
+      </div>
+
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      🛡️ Hybrid AI Defense — Ramkumar • VIT Vellore
+    </footer>
+  </div>
+
+  <!-- Error Toast -->
+  <div class="error-toast" id="errorToast"></div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

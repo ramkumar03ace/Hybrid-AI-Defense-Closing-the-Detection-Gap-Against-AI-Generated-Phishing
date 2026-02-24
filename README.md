@@ -84,8 +84,8 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
           ▼                ▼                ▼
    ┌───────────────────────────────────────────────┐
    │          WEIGHTED RISK AGGREGATOR             │
-   │  Score = Text×0.15 + URL×0.30 + Visual×0.25  │
-   │          + Links×0.20 + bonus                 │
+   │  Score = Text×0.15 + URL×0.25 + Crawl×0.10    │
+   │          + Visual×0.20 + Links×0.20 + bonus   │
    │  2+ layers flagged → +0.15 boost              │
    └───────────────────────┬───────────────────────┘
                            │
@@ -168,7 +168,7 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 | Visual Detection | Heuristic rules (12+ brands) | ✅ |
 | Link Analysis | requests + redirect chain tracking | ✅ |
 | Frontend | HTML + CSS + JS (dark mode) | ✅ |
-| Chrome Extension | Manifest V3 | ⬜ Planned |
+| Chrome Extension | Manifest V3 (Gmail integration) | ✅ |
 | CNN Visual Model | ResNet/EfficientNet on screenshots | ⬜ Planned |
 
 **Total Cost: ₹0**
@@ -198,14 +198,14 @@ Most phishing detectors catch traditional, human-written phishing emails. This p
 - [x] Implement recursive link checker (redirects, URL shorteners)
 - [x] Integrate all into `/deep-analyze` endpoint (5-layer pipeline)
 
-### Week 4: Frontend & Polish 🔄 ← YOU ARE HERE
+### Week 4: Frontend & Polish ✅
 - [x] Build web app UI (dashboard to paste & analyze emails)
-- [ ] Create Chrome extension (Gmail integration)
+- [x] Create Chrome extension (Gmail integration)
 - [x] Connect everything to backend
 - [x] Rebalance scoring weights (Text 35%→15%, URL 20%→30%, Links 10%→20%)
 - [x] Testing and bug fixes
 
-### Week 5: CNN Visual Model & Final Integration ⬜
+### Week 5: CNN Visual Model & Final Integration 🔄 ← YOU ARE HERE
 - [ ] Collect screenshot dataset (phishing vs real login pages)
 - [ ] Train CNN model (ResNet/EfficientNet) on page screenshots
 - [ ] Replace heuristic visual analyzer with CNN-based detection
@@ -253,10 +253,14 @@ Hybrid-AI-Defense/
 │   ├── styles.css
 │   └── app.js
 │
-├── extension/                  # (Week 4)
-│   ├── manifest.json
-│   ├── popup.html
-│   └── popup.js
+├── extension/                  # Chrome Extension (Gmail)
+│   ├── manifest.json           # Manifest V3 config
+│   ├── popup.html              # Extension popup UI
+│   ├── popup.css               # Dark mode styles
+│   ├── popup.js                # Popup logic (API calls)
+│   ├── content.js              # Gmail email extractor
+│   ├── background.js           # Service worker
+│   └── icons/                  # Shield icons (16/48/128px)
 │
 └── notebooks/
     └── training.ipynb          # Colab notebook for training
@@ -269,7 +273,7 @@ Hybrid-AI-Defense/
 1. **ML Model** — Fine-tuned DistilBERT for phishing detection ✅
 2. **Backend API** — FastAPI service with all analyzers ✅
 3. **Web Application** — Dark mode dashboard with 5-layer results ✅
-4. **Chrome Extension** — Gmail integration for real-time scanning ⬜
+4. **Chrome Extension** — Gmail integration for real-time scanning ✅
 5. **CNN Visual Model** — Screenshot-based fake login detection ⬜
 6. **Documentation** — Full project documentation ⬜
 7. **Paper (Optional)** — Research paper for publication ⬜
@@ -326,4 +330,4 @@ uvicorn main:app --reload --port 8001
 
 ---
 
-*Last Updated: February 16, 2026 — Scoring weights rebalanced, frontend dashboard completed*
+*Last Updated: February 24, 2026 — Chrome Extension (Gmail integration) completed*
