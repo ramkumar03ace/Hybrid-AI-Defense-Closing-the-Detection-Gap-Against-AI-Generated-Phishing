@@ -2,7 +2,6 @@
 Configuration settings for the phishing detection backend.
 """
 
-from pathlib import Path
 from pydantic_settings import BaseSettings
 
 
@@ -16,7 +15,7 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     # Model Settings
-    MODEL_PATH: Path = Path(__file__).parent.parent / "model" / "saved_models" / "phishing_detector_model_v2"
+    HF_MODEL_ID: str = "cybersectony/phishing-email-detection-distilbert_v2.4.1"
     MAX_TEXT_LENGTH: int = 512
     
     # Classification Thresholds
